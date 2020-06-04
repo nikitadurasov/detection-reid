@@ -127,6 +127,12 @@ ret, original_frame = cap.read()
 filename = f"outputs/{video_name.split('/')[-1]}_frame_{frame_number}.npy"
 bboxes = np.load(filename)
 
+# check if bboxes are valid
+bboxes[bboxes < 0] = 0
+bboxes = bboxes[np.abs(bboxes[:, 0] - bboxes[:, 2]) > 0]
+bboxes = bboxes[np.abs(bboxes[:, 1] - bboxes[:, 3]) > 0]
+
+
 gallery = build_features(original_frame, bboxes, model)
 indexes = range(len(gallery))
 
@@ -156,7 +162,11 @@ while cap.isOpened():
         
     filename = f"outputs/{video_name.split('/')[-1]}_frame_{frame_number}.npy"
     bboxes = np.load(filename)
-    bboxes[bboxes < 0] = 0 
+
+    # check if boxes are valid
+    bboxes[bboxes < 0] = 0
+    bboxes = bboxes[np.abs(bboxes[:, 0] - bboxes[:, 2]) > 0]
+    bboxes = bboxes[np.abs(bboxes[:, 1] - bboxes[:, 3]) > 0]
     
     features = build_features(original_frame, bboxes, model)
     
@@ -178,5 +188,7 @@ while cap.isOpened():
     
     plt.savefig(f"bbox_videos/{video_name.split('/')[-1]}_frame_{frame_number:03d}.jpg", format='jpg')
     plt.show()
+
+    plt.close()
     
     frame_number += 1
