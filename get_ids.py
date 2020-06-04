@@ -1,6 +1,9 @@
 import torchreid
 import torch
+
+
 import numpy as np
+import argparse
 
 import torch.nn.functional as F
 import torchvision.transforms as transforms
@@ -20,8 +23,16 @@ model = torchreid.models.build_model(
                     loss='softmax',
                     pretrained=False)
 
+# parse script arguments
+parser = argparse.ArgumentParser()
+parser.add_argument("--video", type=str)
+parser.add_argument("--weights", type=str)
+
+args = parser.parse_args()
+
+
 #checkpoint = torch.load('./weights/model.pth.tar-90')
-checkpoint = torch.load('./weights/resnet50.pth')
+checkpoint = torch.load(args.weights)
 #model.load_state_dict(checkpoint['state_dict'])
 model.load_state_dict(checkpoint)
 model = model.cuda()
@@ -107,7 +118,7 @@ def plot_bboxes(bboxes, ids):
                 bbox={"color": 'r', "pad": 0},
         )
 
-video_name = 'milestone3/MOT16-10-raw.webm'
+video_name = args.video
 cap = cv2.VideoCapture(video_name)
 
 frame_number = 0
