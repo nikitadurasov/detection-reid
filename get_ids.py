@@ -19,7 +19,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 model = torchreid.models.build_model(
                     name='resnet50',
-                    num_classes=4101,
+                    num_classes=1041,
                     loss='softmax',
                     pretrained=False)
 
@@ -33,8 +33,8 @@ args = parser.parse_args()
 
 #checkpoint = torch.load('./weights/model.pth.tar-90')
 checkpoint = torch.load(args.weights)
-#model.load_state_dict(checkpoint['state_dict'])
-model.load_state_dict(checkpoint)
+model.load_state_dict(checkpoint['state_dict'])
+#model.load_state_dict(checkpoint)
 model = model.cuda()
 
 def extract_features(model, inputs):
@@ -68,7 +68,7 @@ def patch_to_features(original_frame, bbox, model):
     # forward pass to get features
     patch = normalize(patch).cuda()
     patch_features = extract_features(model, patch.unsqueeze(0))
-    patch_features = F.normalize(patch_features, p=2, dim=1)
+    #patch_features = F.normalize(patch_features, p=2, dim=1)
     
     return patch_features
 
@@ -90,9 +90,10 @@ def euclidean_squared_distance(input1, input2):
     distmat.addmm_(1, -2, input1, input2.t())
     return distmat
 
-def update_gallery(gallery, features, threshold=0.006):
+def update_gallery(gallery, features):
     
     dist = euclidean_squared_distance(gallery, features)
+    threshold = 0.8 * dist.median()
     new_features = features[torch.all(dist > threshold, dim=0)]
     
     return torch.cat([gallery, new_features], dim=0)
@@ -124,6 +125,8 @@ cap = cv2.VideoCapture(video_name)
 frame_number = 0
 ret, original_frame = cap.read()
 
+original_frame = cv2.cvtColor(original_frame, cv2.COLOR_BGR2RGB)
+
 filename = f"outputs/{video_name.split('/')[-1]}_frame_{frame_number}.npy"
 bboxes = np.load(filename)
 
@@ -151,7 +154,7 @@ frame_number += 1
 
 while cap.isOpened():
     
-    print(f'Processing frame number {frame_number}')
+    print(f'Processing frame number {frame_number}', f"Gallery size: {gallery.size()[0]}")
     
     ret, original_frame = cap.read()
     
@@ -170,7 +173,7 @@ while cap.isOpened():
     
     features = build_features(original_frame, bboxes, model)
     
-    if frame_number % 10 == 9:
+    if frame_number % 30 == 29:
         gallery = update_gallery(gallery, features)
     
     dist_matrix = euclidean_squared_distance(gallery, features)
